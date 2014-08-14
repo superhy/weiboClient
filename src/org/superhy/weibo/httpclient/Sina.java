@@ -47,6 +47,109 @@ public class Sina {
 
 	}
 
+	public static String loginMobile(String u, String p) {
+		// WeiBoUser user = null;
+
+		String html = "";
+
+		DefaultHttpClient client = new DefaultHttpClient();
+
+		try {
+			// 获得rsaPubkey,rsakv,servertime等参数值
+			HashMap<String, String> params = preLogin(encodeAccount(u), client);
+
+			// Mobile
+			HttpPost post = new HttpPost(
+					"http://login.weibo.cn/login/");
+
+			// HttpPost post = new HttpPost(
+			// "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.5)");
+
+			post.setHeader("Accept",
+					"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+			post.setHeader("User-Agent",
+					"Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
+
+			post.setHeader("Accept-Language", "zh-cn,zh;q=0.5");
+			post.setHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7");
+			post.setHeader("Referer",
+					"http://login.weibo.cn/login/");
+			post.setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+			String nonce = makeNonce(6);
+
+			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+			nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
+			nvps.add(new BasicNameValuePair("entry", "weibo"));
+			nvps.add(new BasicNameValuePair("from", ""));
+			nvps.add(new BasicNameValuePair("gateway", "1"));
+			nvps.add(new BasicNameValuePair("nonce", nonce));
+			nvps.add(new BasicNameValuePair("pagerefer",
+					"http://i.firefoxchina.cn/old/"));
+			nvps.add(new BasicNameValuePair("prelt", "111"));
+			nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
+			nvps.add(new BasicNameValuePair("returntype", "META"));
+			nvps.add(new BasicNameValuePair("rsakv", params.get("rsakv")));
+			nvps.add(new BasicNameValuePair("savestate", "0"));
+			nvps.add(new BasicNameValuePair("servertime", params
+					.get("servertime")));
+
+			nvps.add(new BasicNameValuePair("service", "miniblog"));
+			// nvps.add(new BasicNameValuePair("sp", new
+			// SinaSSOEncoder().encode(p, data, nonce)));
+
+			/******************** *加密密码 ***************************/
+			ScriptEngineManager sem = new ScriptEngineManager();
+			ScriptEngine se = sem.getEngineByName("javascript");
+			// FileReader f = new FileReader("d://sso.js");
+			se.eval(SinaSSOEncoder.getJs());
+			String pass = "";
+
+			if (se instanceof Invocable) {
+				Invocable invoke = (Invocable) se;
+				// 调用preprocess方法，并传入两个参数密码和验证码
+
+				pass = invoke.invokeFunction("getpass", p,
+						params.get("servertime"), nonce, params.get("pubkey"))
+						.toString();
+
+				System.out.println("c = " + pass);
+			}
+
+			nvps.add(new BasicNameValuePair("sp", pass));
+			nvps.add(new BasicNameValuePair("su", encodeAccount(u)));
+			nvps.add(new BasicNameValuePair(
+					"url",
+					"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
+
+			nvps.add(new BasicNameValuePair("useticket", "1"));
+			// nvps.add(new BasicNameValuePair("ssosimplelogin", "1"));
+			nvps.add(new BasicNameValuePair("vsnf", "1"));
+
+			post.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+
+			HttpResponse response = client.execute(post);
+
+			String entity = EntityUtils.toString(response.getEntity());
+
+			System.out.println(entity.toString());
+
+			HttpGet getMethod = new HttpGet("http://weibo.cn/pub/");
+			response = client.execute(getMethod);
+			entity = EntityUtils.toString(response.getEntity());
+
+			html += entity;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println(e.getMessage());
+			// logger.info(e.getMessage());
+		}
+
+		return html;
+
+	}
+
 	public static WeiBoUser login(String u, String p) {
 
 		WeiBoUser user = null;
@@ -62,15 +165,14 @@ public class Sina {
 			// "https://passport.sina.cn/signin/signin?entry=wapsso.js(v1.4.5)");
 
 			HttpPost post = new HttpPost(
-					"http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.5)");
-			post
-					.setHeader("Accept",
-							"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-			post
-					.setHeader("User-Agent",
-							"Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
+					"http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.2)");
 
-			post.setHeader("Accept-Language", "zh-cn,zh;q=0.5");
+			post.setHeader("Accept",
+					"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+			post.setHeader("User-Agent",
+					"Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
+
+			post.setHeader("Accept-Language", "zh-cn,zh;q=0.8");
 			post.setHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7");
 			post.setHeader("Referer",
 					"http://weibo.com/?c=spr_web_sq_firefox_weibo_t001");
@@ -118,10 +220,9 @@ public class Sina {
 
 			nvps.add(new BasicNameValuePair("sp", pass));
 			nvps.add(new BasicNameValuePair("su", encodeAccount(u)));
-			nvps
-					.add(new BasicNameValuePair(
-							"url",
-							"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
+			nvps.add(new BasicNameValuePair(
+					"url",
+					"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
 
 			nvps.add(new BasicNameValuePair("useticket", "1"));
 			// nvps.add(new BasicNameValuePair("ssosimplelogin", "1"));
@@ -133,10 +234,14 @@ public class Sina {
 
 			String entity = EntityUtils.toString(response.getEntity());
 
+			// System.out.println(entity.toString());
+
 			if (entity.replace("\"", "").indexOf("retcode=0") > -1) {
+
+				// fix code
 				String url = entity.substring(entity
-						.indexOf("http://weibo.com/sso/login.php?"), entity
-						.indexOf("code=0") + 6);
+						.indexOf("http://passport.weibo.com/wbsso/login?"),
+						entity.indexOf("code=0") + 6);
 
 				String strScr = ""; // 首页用户script形式数据
 				String nick = "暂无"; // 昵称
@@ -145,7 +250,9 @@ public class Sina {
 				HttpGet getMethod = new HttpGet(url);
 				response = client.execute(getMethod);
 				entity = EntityUtils.toString(response.getEntity());
-				System.out.println(entity);
+
+				// System.out.println(entity);
+
 				nick = entity.substring(entity.indexOf("displayname") + 14,
 						entity.lastIndexOf("userdomain") - 3).trim();
 
@@ -154,6 +261,9 @@ public class Sina {
 				getMethod = new HttpGet("http://weibo.com/" + url);
 				response = client.execute(getMethod);
 				entity = EntityUtils.toString(response.getEntity());
+
+				// System.out.println(entity.toString());
+
 				Document doc = Jsoup.parse(entity);
 				Elements els = doc.select("script");
 
@@ -259,8 +369,8 @@ public class Sina {
 	 * @throws IOException
 	 */
 	private static String dump(HttpEntity entity) throws IOException {
-		BufferedReader br = new BufferedReader(new InputStreamReader(entity
-				.getContent(), "utf8"));
+		BufferedReader br = new BufferedReader(new InputStreamReader(
+				entity.getContent(), "utf8"));
 		return IOUtils.toString(br);
 	}
 
@@ -295,10 +405,9 @@ public class Sina {
 			nvps.add(new BasicNameValuePair("sp", new SinaSSOEncoder().encode(
 					p, data, nonce)));
 
-			nvps
-					.add(new BasicNameValuePair(
-							"url",
-							"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
+			nvps.add(new BasicNameValuePair(
+					"url",
+					"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
 			nvps.add(new BasicNameValuePair("returntype", "META"));
 			nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
 			nvps.add(new BasicNameValuePair("vsnf", "1"));
@@ -311,9 +420,9 @@ public class Sina {
 			System.out.println(entity);
 			if (entity.replace("\"", "").indexOf("retcode=0") > -1) {
 
-				String url = entity.substring(entity
-						.indexOf("http://weibo.com/ajaxlogin.php?"), entity
-						.indexOf("code=0") + 6);
+				String url = entity.substring(
+						entity.indexOf("http://weibo.com/ajaxlogin.php?"),
+						entity.indexOf("code=0") + 6);
 
 				// 获取到实际url进行连接
 				HttpGet getMethod = new HttpGet(url);
@@ -328,10 +437,9 @@ public class Sina {
 				/*************************************************************************************/
 
 				post = new HttpPost("http://v.t.sina.com.cn/share/aj_share.php");
-				post
-						.addHeader(
-								"Referer",
-								"http://v.t.sina.com.cn/share/share.php?url=http%3A%2F%2Fnews.sina.com.cn%2Fc%2F2012-03-31%2F074424204961.shtml&title=%E5%B1%B1%E4%B8%9C%E6%BB%95%E5%B7%9E%E6%9D%91%E6%B0%91%E5%9B%A0%E7%8B%BC%E5%92%AC%E4%BA%BA%E4%BA%8B%E4%BB%B6%E7%95%99%E5%BF%83%E7%90%86%E9%98%B4%E5%BD%B1&ralateUid=1618051664&source=%E6%96%B0%E6%B5%AA%E6%96%B0%E9%97%BB&sourceUrl=http%3A%2F%2Fnews.sina.com.cn%2F&content=gb2312&pic=http%3A%2F%2Fi1.sinaimg.cn%2Fdy%2Fcr%2F2012%2F0331%2F1728605356.jpg");
+				post.addHeader(
+						"Referer",
+						"http://v.t.sina.com.cn/share/share.php?url=http%3A%2F%2Fnews.sina.com.cn%2Fc%2F2012-03-31%2F074424204961.shtml&title=%E5%B1%B1%E4%B8%9C%E6%BB%95%E5%B7%9E%E6%9D%91%E6%B0%91%E5%9B%A0%E7%8B%BC%E5%92%AC%E4%BA%BA%E4%BA%8B%E4%BB%B6%E7%95%99%E5%BF%83%E7%90%86%E9%98%B4%E5%BD%B1&ralateUid=1618051664&source=%E6%96%B0%E6%B5%AA%E6%96%B0%E9%97%BB&sourceUrl=http%3A%2F%2Fnews.sina.com.cn%2F&content=gb2312&pic=http%3A%2F%2Fi1.sinaimg.cn%2Fdy%2Fcr%2F2012%2F0331%2F1728605356.jpg");
 
 				nvps = new ArrayList<NameValuePair>();
 				nvps.add(new BasicNameValuePair("appkey", "1671520477"));
@@ -372,12 +480,10 @@ public class Sina {
 
 			HttpPost post = new HttpPost(
 					"http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.5)");
-			post
-					.setHeader("Accept",
-							"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-			post
-					.setHeader("User-Agent",
-							"Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
+			post.setHeader("Accept",
+					"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+			post.setHeader("User-Agent",
+					"Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
 
 			post.setHeader("Accept-Language", "zh-cn,zh;q=0.5");
 			post.setHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7");
@@ -427,10 +533,9 @@ public class Sina {
 
 			nvps.add(new BasicNameValuePair("sp", pass));
 			nvps.add(new BasicNameValuePair("su", encodeAccount(u)));
-			nvps
-					.add(new BasicNameValuePair(
-							"url",
-							"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
+			nvps.add(new BasicNameValuePair(
+					"url",
+					"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
 
 			nvps.add(new BasicNameValuePair("useticket", "1"));
 			// nvps.add(new BasicNameValuePair("ssosimplelogin", "1"));
@@ -443,9 +548,9 @@ public class Sina {
 			String entity = EntityUtils.toString(response.getEntity());
 
 			if (entity.replace("\"", "").indexOf("retcode=0") > -1) {
-				String url = entity.substring(entity
-						.indexOf("http://weibo.com/sso/login.php?"), entity
-						.indexOf("code=0") + 6);
+				String url = entity.substring(
+						entity.indexOf("http://weibo.com/sso/login.php?"),
+						entity.indexOf("code=0") + 6);
 
 				// 获取到实际url进行连接
 				HttpGet getMethod = new HttpGet(url);

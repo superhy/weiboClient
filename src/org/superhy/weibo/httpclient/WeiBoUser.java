@@ -6,6 +6,18 @@ public class WeiBoUser {
 	private String userPass;
 	private String displayName;
 
+	public WeiBoUser() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public WeiBoUser(String userName, String userPass, String displayName) {
+		super();
+		this.userName = userName;
+		this.userPass = userPass;
+		this.displayName = displayName;
+	}
+
 	public String getDisplayName() {
 		return displayName;
 	}
@@ -28,6 +40,12 @@ public class WeiBoUser {
 
 	public void setUserPass(String userPass) {
 		this.userPass = userPass;
+	}
+
+	@Override
+	public String toString() {
+		return "WeiBoUser [userName=" + userName + ", userPass=" + userPass
+				+ ", displayName=" + displayName + "]";
 	}
 
 }
