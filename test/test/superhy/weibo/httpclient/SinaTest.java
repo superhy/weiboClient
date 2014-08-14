@@ -11,7 +11,7 @@ public class SinaTest {
 		String u = "superhy199148@gmail.com";
 		String p = "232323";
 
-		// System.out.println(Sina.login(u, p).toString());
-		System.out.println(Sina.loginMobile(u, p).toString());
+		System.out.println(Sina.login(u, p).toString());
+		// System.out.println(Sina.loginMobile(u, p).toString());
 	}
 }
