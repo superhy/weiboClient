@@ -12,6 +12,5 @@ public class SinaTest {
 		String p = "232323";
 
 		System.out.println(Sina.login(u, p).toString());
-		// System.out.println(Sina.loginMobile(u, p).toString());
 	}
 }
